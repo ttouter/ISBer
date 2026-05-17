@@ -3,7 +3,7 @@ import asyncio
 from logic.gestor_trabajadores import registrar_trabajador, actualizar_trabajador
 from logic.validators import (
     filtrar_letras, filtrar_numeros, filtrar_curp, filtrar_rfc,
-    filtrar_direccion,
+    filtrar_direccion, validar_direccion_completa
 )
 from theme.estilos import COLOR_ALERTA, COLOR_EXITO, estilo_boton_principal
 from data.ubicaciones import PAISES, obtener_estados, obtener_ciudades
@@ -167,7 +167,7 @@ def alta_trabajadores_view(page: ft.Page, volver, datos_edicion=None):
         options=[],
     )
 
-    direccion = tf_direccion("Calle, número y colonia")
+    direccion = tf_direccion("Calle, número y colonia *")
 
     telefono = tf_numeros("Teléfono", max_len=10,
                           keyboard=ft.KeyboardType.PHONE)
@@ -265,6 +265,15 @@ def alta_trabajadores_view(page: ft.Page, volver, datos_edicion=None):
         page.update()
 
     def guardar(e):
+
+        ok_dir, msg_dir = validar_direccion_completa(direccion.value)
+        if not ok_dir:
+            mensaje.value = msg_dir
+            mensaje.color = "red"
+            page.update()
+            page.run_task(limpiar_mensaje)
+            return
+        
         # Armar dirección completa (formato: "calle | Ciudad | Estado | País")
         partes_dir = [
             (direccion.value or "").strip(),

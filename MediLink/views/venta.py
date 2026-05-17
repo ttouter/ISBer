@@ -590,10 +590,14 @@ def caja_view(page: ft.Page, volver):
             for med in buscar_medicamentos_bd(termino):
                 stock_color = (ft.Colors.GREEN  if med[3] > 5 else
                                ft.Colors.ORANGE if med[3] > 0 else ft.Colors.RED)
+                
+                lote_med = med[4] if len(med) > 4 and med[4] else "N/A"
+                farm_med = med[5] if len(med) > 5 and med[5] else "N/A"
+
                 lista_resultados.controls.append(
                     ft.ListTile(
                         title=ft.Text(f"{med[1]} — ${med[2]:.2f}"),
-                        subtitle=ft.Text(f"Stock: {med[3]}", color=stock_color),
+                        subtitle=ft.Text(f"Stock: {med[3]} | Lote: {lote_med} | Lab: {farm_med}", color=stock_color),
                         leading=ft.Icon(ft.Icons.MEDICAL_SERVICES,
                                         color=ft.Colors.GREEN),
                         on_click=lambda _, m=med: agregar_al_carrito(m)

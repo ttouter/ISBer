@@ -328,9 +328,6 @@ def validar_direccion_completa(valor):
     if len(s.split()) < 3:
         return False, "Debes incluir calle, número y colonia separados por espacios."
         
-<<<<<<< HEAD
-    return True, ""
-=======
     return True, ""
 
 def validar_nombre_medicamento(valor, min_len=2):
@@ -359,5 +356,3 @@ def validar_formato_lote(valor):
         return False, "Formato de lote inválido. Debe ser 'L' seguido de 3 números (Ej: L001)."
     
     return True, ""
-
->>>>>>> 32d907d84c947df93ff06ee6c67dff1f397d2d7f

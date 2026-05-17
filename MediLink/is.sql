@@ -489,7 +489,13 @@ CREATE PROCEDURE sp_buscar_medicamentos(
     IN p_termino VARCHAR(150)
 )
 BEGIN
-    SELECT id_medicamento, nombre_producto, precio_unitario, stock
+    SELECT 
+        id_medicamento, 
+        nombre_producto, 
+        precio_unitario, 
+        stock,
+        numero_lote,    -- NUEVO
+        farmaceutica    -- NUEVO
     FROM medicamentos
     WHERE nombre_producto LIKE CONCAT('%', p_termino, '%')
       AND stock > 0
