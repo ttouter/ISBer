@@ -1,0 +1,48 @@
+# ========================
+# Entorno Virtual
+# ========================
+# Tu entorno actual
+ProyectoIS/
+# Nombres comunes por si lo cambias a futuro
+.venv/
+venv/
+env/
+
+# ========================
+# Archivos de Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ========================
+# Flet / PyInstaller (Compilación)
+# ========================
+build/
+dist/
+*.spec
+# Aquí se incluye tu menu.spec, ya que se autogenera al empaquetar la app
+
+# ========================
+# Base de Datos (Opcional pero recomendado)
+# ========================
+# Si usas SQLite local, es mejor no subir la base de datos de pruebas
+*.db
+*.sqlite3
+
+# ========================
+# Editores de código (IDE)
+# ========================
+.vscode/
+.idea/
+
+# ========================
+# Archivos del Sistema Operativo
+# ========================
+.DS_Store
+Thumbs.db
+
+.claude/
+build/
+dist/
+*.spec
