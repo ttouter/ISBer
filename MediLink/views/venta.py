@@ -167,6 +167,8 @@ def caja_view(page: ft.Page, volver):
         lote_med = medicamento[4] if len(
             medicamento) > 4 and medicamento[4] else "N/A"
 
+        lote_med = medicamento[4] if len(medicamento) > 4 and medicamento[4] else "N/A"
+
         for item in carrito:
             if item["id_medicamento"] == id_med:
                 if item["cantidad"] + 1 > stock_med:
@@ -221,11 +223,17 @@ def caja_view(page: ft.Page, volver):
             nombre_con_lote = f"{item['nombre']} (Lote: {item.get('lote', 'N/A')})"
 
             tabla_ticket.rows.append(ft.DataRow(cells=[
+
                 # celda nombre lote
                 ft.DataCell(ft.Text(nombre_con_lote)),
                 # celda cantidad
                 ft.DataCell(ft.Text(str(item["cantidad"]))),
                 # celda subtotal
+                #celda nombre lote
+                ft.DataCell(ft.Text(nombre_con_lote)),
+                #celda cantidad
+                ft.DataCell(ft.Text(str(item["cantidad"]))),
+                #celda subtotal
                 ft.DataCell(ft.Text(f"${item['subtotal']:.2f}")),
                 # Botones + y -
                 ft.DataCell(
@@ -275,6 +283,13 @@ def caja_view(page: ft.Page, volver):
             costo_cita = 120.0
             txt_cita_valor.value = "General"
             txt_cita_costo.value = "$60.00"
+            txt_cita_valor.value       = "Emergencia"
+            txt_cita_costo.value       = "$60.00"
+            fila_cita_desglose.visible = True
+        elif switch_consulta.value:
+            costo_cita = 120.0
+            txt_cita_valor.value       = "General"
+            txt_cita_costo.value       = "$60.00"
             fila_cita_desglose.visible = True
         else:
             fila_cita_desglose.visible = False
@@ -656,6 +671,7 @@ def caja_view(page: ft.Page, volver):
             filas_meds += (
                 # <--- LOTE AGREGADO DEBAJO DEL NOMBRE
                 f"<tr><td>{item['nombre']} <br><span style='font-size:10px; color:#555;'>Lote: {lote_impreso}</span></td>"
+                f"<tr><td>{item['nombre']} <br><span style='font-size:10px; color:#555;'>Lote: {lote_impreso}</span></td>" # <--- LOTE AGREGADO DEBAJO DEL NOMBRE
                 f"<td style='text-align:center'>{item['cantidad']}</td>"
                 f"<td style='text-align:right'>${item['precio']:.2f}</td>"
                 f"<td style='text-align:right'>${item['subtotal']:.2f}</td></tr>"
