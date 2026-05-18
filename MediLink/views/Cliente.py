@@ -13,6 +13,7 @@ from database.consultas import (
     eliminar_historial_bd,
 )
 from data.ubicaciones import PAISES, obtener_estados, obtener_ciudades
+from theme.estilos import crear_appbar
 
 
 def cliente_view(page: ft.Page, volver):
@@ -745,8 +746,7 @@ def cliente_view(page: ft.Page, volver):
                 ft.Row([peso, talla], spacing=15),
                 ft.Row([oxigenacion, presion, temperatura], spacing=15),
                 ft.Row(
-                    [btn_guardar, btn_cancelar,
-                     ft.ElevatedButton("Volver", on_click=volver)],
+                    [btn_guardar, btn_cancelar],
                     alignment=ft.MainAxisAlignment.END
                 ),
                 mensaje
@@ -771,6 +771,7 @@ def cliente_view(page: ft.Page, volver):
 
     return ft.View(
         route="/cliente",
+        appbar=crear_appbar("Gestión de Pacientes", volver),
         controls=[
             ft.Container(
                 expand=True, padding=20,

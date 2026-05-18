@@ -4,6 +4,7 @@ from database.consultas import (
     deshabilitar_trabajador,
     activar_trabajador
 )
+from theme.estilos import crear_appbar
 
 
 def gestion_personal_view(page: ft.Page, ir_a_alta, ir_a_editar, volver):
@@ -251,6 +252,7 @@ def gestion_personal_view(page: ft.Page, ir_a_alta, ir_a_editar, volver):
     # ============================================================
     return ft.View(
         route="/gestion_personal",
+        appbar=crear_appbar("Gestión de Personal", volver),
         controls=[
             ft.Container(
                 padding=20,
@@ -282,10 +284,6 @@ def gestion_personal_view(page: ft.Page, ir_a_alta, ir_a_editar, volver):
                         ),
                         expand=True
                     ),
-                    ft.Row([
-                        ft.ElevatedButton("Volver", icon=ft.Icons.ARROW_BACK,
-                                          on_click=volver)
-                    ], alignment=ft.MainAxisAlignment.START)
                 ], expand=True)
             )
         ]

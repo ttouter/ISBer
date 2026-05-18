@@ -20,6 +20,8 @@ from database.consultas import (
     obtener_historial_bd,
     obtener_medico_por_id,
 )
+from logic.validators import filtrar_letras
+from theme.estilos import crear_appbar
 
 # ============================================================
 # CONFIGURACIÓN DE CORREO — cambia estos datos por los tuyos
@@ -325,7 +327,18 @@ def receta_completa_view(page: ft.Page, volver):
 
     # ================== DIAGNÓSTICO Y FIRMA ==================
     diagnostico = ft.TextField(
-        label="Diagnóstico", multiline=True, expand=True)
+        label="Diagnóstico", multiline=True, expand=True,
+        hint_text="Escribir Diagnostico (solo letras, espacios y signos básicos)"
+    )
+
+    def filtrar_diagnostico(e):
+        limpio = filtrar_letras(diagnostico.value)
+        if limpio != diagnostico.value:
+            diagnostico.value = limpio
+            diagnostico.update()
+
+    diagnostico.on_change = filtrar_diagnostico
+
     firma = ft.TextField(label="Firma", expand=True)
 
     # ================== PRESCRIPCIÓN ==================
@@ -698,126 +711,101 @@ def receta_completa_view(page: ft.Page, volver):
     # ================== UI ==================
     return ft.View(
         route="/receta_completa",
+        appbar=crear_appbar("Receta Médica", volver),
+        scroll=ft.ScrollMode.AUTO,          # ← scroll en la vista directamente
         controls=[
             ft.Container(
                 expand=True,
-                content=ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                ft.Card(
-                                    content=ft.Container(
-                                        width=900,
-                                        padding=25,
-                                        content=ft.Column(
-                                            [
-                                                ft.Text("Receta Médica",
-                                                        size=26, weight="bold"),
+                padding=ft.Padding(left=40, top=20, right=40, bottom=20),
+                content=ft.Card(            # ← Card directo, sin ft.Row envolviendo
+                    elevation=4,
+                    content=ft.Container(
+                        padding=25,
+                        content=ft.Column(
+                            spacing=15,
+                            controls=[
+                                # --- MÉDICO ---
+                                ft.Text("Datos del Médico", weight="bold", size=15),
+                                ft.Row([id_medico, nombre_medico], spacing=15),
+                                ft.Row([cedula_medico]),
 
-                                                # --- MÉDICO ---
-                                                ft.Text(
-                                                    "Datos del Médico", weight="bold"),
-                                                ft.Row(
-                                                    [id_medico, nombre_medico]),
-                                                ft.Row([cedula_medico]),
+                                ft.Divider(),
 
-                                                ft.Divider(),
+                                # --- PACIENTE ---
+                                ft.Row([
+                                    ft.Text("Datos del Paciente", weight="bold",
+                                            size=15, expand=True),
+                                    btn_ver_historial,
+                                ]),
+                                ft.Row([buscador_paciente]),
+                                lista_resultados_paciente,
+                                ft.Row([id_paciente, nombre_paciente], spacing=15),
+                                ft.Row([ap_paterno_paciente, ap_materno_paciente],
+                                       spacing=15),
 
-                                                # --- PACIENTE ---
-                                                ft.Row([
-                                                    ft.Text(
-                                                        "Datos del Paciente", weight="bold", expand=True),
-                                                    btn_ver_historial,
-                                                ]),
-                                                ft.Row([buscador_paciente]),
-                                                lista_resultados_paciente,
-                                                ft.Row(
-                                                    [id_paciente, nombre_paciente]),
-                                                ft.Row(
-                                                    [ap_paterno_paciente, ap_materno_paciente]),
+                                ft.Container(height=4),
+                                ft.Text(
+                                    "Signos vitales de esta consulta (editables):",
+                                    size=12, italic=True,
+                                    color=ft.Colors.GREY_700
+                                ),
+                                ft.Row([edad_paciente, peso_paciente, talla_paciente],
+                                       spacing=15),
+                                ft.Row([oxigenacion_paciente, presion_paciente,
+                                        temperatura_paciente], spacing=15),
 
-                                                # Etiqueta para signos vitales editables
-                                                ft.Container(height=8),
-                                                ft.Text(
-                                                    "Signos vitales de esta consulta (editables):",
-                                                    size=12,
-                                                    italic=True,
-                                                    color=ft.Colors.GREY_700
-                                                ),
-                                                ft.Row(
-                                                    [edad_paciente, peso_paciente, talla_paciente]),
-                                                ft.Row(
-                                                    [oxigenacion_paciente, presion_paciente, temperatura_paciente]),
+                                ft.Divider(),
 
-                                                ft.Divider(),
+                                # --- DIAGNÓSTICO ---
+                                ft.Text("Diagnóstico", weight="bold", size=15),
+                                diagnostico,
 
-                                                # --- DIAGNÓSTICO ---
-                                                diagnostico,
+                                ft.Divider(),
 
-                                                ft.Divider(),
+                                # --- PRESCRIPCIÓN ---
+                                ft.Text("Prescripción", weight="bold", size=15),
+                                ft.Row([
+                                    ft.Text("Medicamento", expand=True),
+                                    ft.Text("Dosis",      width=150),
+                                    ft.Text("Frecuencia", width=150),
+                                    ft.Text("Duración",   width=150),
+                                ]),
+                                lista_medicamentos,
+                                ft.ElevatedButton(
+                                    "Agregar medicamento",
+                                    icon=ft.Icons.ADD,
+                                    on_click=lambda e: crear_fila()
+                                ),
 
-                                                # --- PRESCRIPCIÓN ---
-                                                ft.Text("Prescripción",
-                                                        weight="bold"),
-                                                ft.Row([
-                                                    ft.Text(
-                                                        "Medicamento", expand=True),
-                                                    ft.Text(
-                                                        "Dosis",      width=150),
-                                                    ft.Text(
-                                                        "Frecuencia", width=150),
-                                                    ft.Text("Duración",
-                                                            width=150),
-                                                ]),
-                                                lista_medicamentos,
-                                                ft.ElevatedButton(
-                                                    "Agregar medicamento",
-                                                    icon=ft.Icons.ADD,
-                                                    on_click=lambda e: crear_fila()
-                                                ),
+                                firma,
+                                ft.Divider(),
 
-                                                firma,
+                                # --- CHECKBOX CORREO ---
+                                ft.Container(
+                                    content=ft.Row([
+                                        ft.Icon(ft.Icons.EMAIL,
+                                                color=ft.Colors.BLUE_400),
+                                        chk_enviar_correo,
+                                    ]),
+                                    bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLUE),
+                                    border_radius=8,
+                                    padding=ft.Padding(10, 8, 10, 8)
+                                ),
 
-                                                ft.Divider(),
+                                ft.Row(
+                                    [
+                                        ft.ElevatedButton("Guardar",
+                                                          on_click=guardar),
+                                        ft.ElevatedButton("Generar PDF",
+                                                          on_click=generar_pdf),
+                                    ],
+                                    alignment=ft.MainAxisAlignment.END
+                                ),
 
-                                                # --- CHECKBOX CORREO ---
-                                                ft.Container(
-                                                    content=ft.Row([
-                                                        ft.Icon(
-                                                            ft.Icons.EMAIL, color=ft.Colors.BLUE_400),
-                                                        chk_enviar_correo,
-                                                    ]),
-                                                    bgcolor=ft.Colors.with_opacity(
-                                                        0.05, ft.Colors.BLUE),
-                                                    border_radius=8,
-                                                    padding=ft.Padding(
-                                                        10, 8, 10, 8)
-                                                ),
-
-                                                ft.Row(
-                                                    [
-                                                        ft.ElevatedButton(
-                                                            "Guardar",      on_click=guardar),
-                                                        ft.ElevatedButton(
-                                                            "Generar PDF",  on_click=generar_pdf),
-                                                        ft.ElevatedButton(
-                                                            "Volver",       on_click=volver),
-                                                    ],
-                                                    alignment=ft.MainAxisAlignment.END
-                                                ),
-
-                                                mensaje
-                                            ],
-                                            spacing=15
-                                        )
-                                    )
-                                )
-                            ],
-                            alignment=ft.MainAxisAlignment.CENTER
+                                mensaje,
+                            ]
                         )
-                    ],
-                    scroll=ft.ScrollMode.AUTO,
-                    expand=True
+                    )
                 )
             )
         ]

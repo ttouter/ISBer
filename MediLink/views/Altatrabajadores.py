@@ -7,6 +7,8 @@ from logic.validators import (
 )
 from theme.estilos import COLOR_ALERTA, COLOR_EXITO, estilo_boton_principal
 from data.ubicaciones import PAISES, obtener_estados, obtener_ciudades
+from theme.estilos import COLOR_ALERTA, COLOR_EXITO, estilo_boton_principal
+from theme.estilos import COLOR_ALERTA, COLOR_EXITO, estilo_boton_principal, crear_appbar
 
 
 def alta_trabajadores_view(page: ft.Page, volver, datos_edicion=None):
@@ -332,6 +334,7 @@ def alta_trabajadores_view(page: ft.Page, volver, datos_edicion=None):
     # ============================================================
     return ft.View(
         route="/alta_trabajadores",
+        appbar=crear_appbar(titulo_vista, volver),
         controls=[
             ft.Container(
                 expand=True, padding=20,
@@ -341,7 +344,6 @@ def alta_trabajadores_view(page: ft.Page, volver, datos_edicion=None):
                         content=ft.Container(
                             expand=True, padding=30,
                             content=ft.Column([
-                                ft.Text(titulo_vista, size=26, weight="bold"),
                                 ft.Divider(),
                                 ft.Text("Datos Personales", weight="bold"),
                                 ft.Row(
@@ -359,8 +361,7 @@ def alta_trabajadores_view(page: ft.Page, volver, datos_edicion=None):
                                        btn_fecha_ingre], spacing=15),
                                 ft.Divider(),
                                 ft.Row(
-                                    [btn_guardar,
-                                     ft.ElevatedButton("Volver", on_click=volver)],
+                                    [btn_guardar],
                                     alignment=ft.MainAxisAlignment.END
                                 ),
                                 mensaje
