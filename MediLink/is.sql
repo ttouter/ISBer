@@ -1192,3 +1192,58 @@ ALTER TABLE clientes
 ADD COLUMN observacion TEXT DEFAULT NULL;
 
 select * from clientes;
+
+-- ============================================================
+-- MIGRACIÓN: número de lote a formato numérico puro
+-- Ejecutar en MySQL contra la base de datos de la farmacia
+-- ============================================================
+
+-- 1) Convertir lotes existentes con formato L001 → 1, L002 → 2, etc.
+--    (Extrae los dígitos quitando la 'L' inicial)
+UPDATE medicamentos
+SET numero_lote = CAST(SUBSTRING(numero_lote, 2) AS UNSIGNED)
+WHERE numero_lote REGEXP '^L[0-9]+$';
+
+-- Si tienes lotes con otro formato (ej: L-001, LOT-05) ajusta el WHERE:
+-- WHERE numero_lote REGEXP '^[A-Za-z]+-?[0-9]+$'
+
+-- 2) Verificar que no queden duplicados antes de poner el UNIQUE
+SELECT numero_lote, COUNT(*) AS repetidos
+FROM medicamentos
+GROUP BY numero_lote
+HAVING COUNT(*) > 1;
+-- Si esta consulta devuelve filas, corrígelas manualmente antes de continuar.
+
+-- 3) Agregar restricción UNIQUE en numero_lote
+--    (Asegura a nivel BD que ningún lote se repita, sin importar el medicamento)
+ALTER TABLE medicamentos
+    ADD CONSTRAINT uk_numero_lote UNIQUE (numero_lote);
+
+-- 4) (Opcional pero recomendado) Cambiar el tipo de columna a INT
+--    para rechazar texto desde la propia BD
+ALTER TABLE medicamentos
+    MODIFY COLUMN numero_lote INT NOT NULL;
+
+-- ¡Listo! A partir de ahora solo se aceptan números enteros como lote
+-- y no se puede repetir el mismo número aunque sea para un medicamento distinto.
+
+select * from medicamentos;
+
+-- 1. Convertir lotes existentes L001 → 1, L002 → 2, etc.
+UPDATE medicamentos
+SET numero_lote = CAST(SUBSTRING(numero_lote, 2) AS UNSIGNED)
+WHERE numero_lote REGEXP '^L[0-9]+$';
+
+-- 2. Verificar que no haya duplicados antes de agregar el UNIQUE
+SELECT numero_lote, COUNT(*) AS repetidos
+FROM medicamentos
+GROUP BY numero_lote
+HAVING COUNT(*) > 1;
+
+-- 3. Agregar restricción UNIQUE
+ALTER TABLE medicamentos
+    ADD CONSTRAINT uk_numero_lote UNIQUE (numero_lote);
+
+-- 4. Cambiar tipo de columna a INT
+ALTER TABLE medicamentos
+    MODIFY COLUMN numero_lote INT NOT NULL;

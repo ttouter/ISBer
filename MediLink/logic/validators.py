@@ -4,19 +4,20 @@ from datetime import datetime, date
 # ============================================================
 # EXPRESIONES REGULARES
 # ============================================================
-RE_SOLO_LETRAS       = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]")
-RE_SOLO_NUMEROS      = re.compile(r"[^0-9]")
-RE_NUMEROS_DECIMAL   = re.compile(r"[^0-9.]")
-RE_LETRAS_NUMEROS    = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s]")
-RE_PRESION           = re.compile(r"[^0-9/]")
-RE_LOTE              = re.compile(r"[^A-Za-z0-9-]")
-RE_DOSIS             = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s/().,-]")
-RE_DIRECCION         = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s,.#°-]")
+RE_SOLO_LETRAS = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]")
+RE_SOLO_NUMEROS = re.compile(r"[^0-9]")
+RE_NUMEROS_DECIMAL = re.compile(r"[^0-9.]")
+RE_LETRAS_NUMEROS = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s]")
+RE_PRESION = re.compile(r"[^0-9/]")
+RE_LOTE = re.compile(r"[^0-9]")
+RE_DOSIS = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s/().,-]")
+RE_DIRECCION = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s,.#°-]")
+RE_NOMBRE_MED = re.compile(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s\-]")
 
-RE_EMAIL             = re.compile(r"^[\w\.\-+]+@[\w\-]+\.[\w\.\-]+$")
-RE_CURP              = re.compile(r"^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[A-Z0-9]{2}$")
-RE_RFC_FISICA        = re.compile(r"^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$")
-RE_RFC_MORAL         = re.compile(r"^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$")
+RE_EMAIL = re.compile(r"^[\w\.\-+]+@[\w\-]+\.[\w\.\-]+$")
+RE_CURP = re.compile(r"^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[A-Z0-9]{2}$")
+RE_RFC_FISICA = re.compile(r"^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$")
+RE_RFC_MORAL = re.compile(r"^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$")
 
 
 # ============================================================
@@ -26,9 +27,11 @@ def filtrar_letras(texto: str) -> str:
     """Permite solo letras (con acentos y ñ) y espacios."""
     return RE_SOLO_LETRAS.sub("", texto or "")
 
+
 def filtrar_numeros(texto: str) -> str:
     """Permite solo dígitos."""
     return RE_SOLO_NUMEROS.sub("", texto or "")
+
 
 def filtrar_numeros_decimal(texto: str) -> str:
     """Permite dígitos y un solo punto decimal."""
@@ -40,29 +43,36 @@ def filtrar_numeros_decimal(texto: str) -> str:
         limpio = partes[0] + "." + "".join(partes[1:])
     return limpio
 
+
 def filtrar_letras_numeros(texto: str) -> str:
     """Permite letras, números y espacios."""
     return RE_LETRAS_NUMEROS.sub("", texto or "")
+
 
 def filtrar_presion(texto: str) -> str:
     """Permite dígitos y la barra '/'. Ejemplo: 120/80"""
     return RE_PRESION.sub("", texto or "")
 
+
 def filtrar_lote(texto: str) -> str:
-    """Permite letras, números y guion. Ejemplo: L-001"""
-    return RE_LOTE.sub("", (texto or "").upper())
+    """Permite solo dígitos para número de lote. Ejemplo: 1001"""
+    return RE_LOTE.sub("", texto or "")
+
 
 def filtrar_dosis(texto: str) -> str:
     """Permite letras, números, espacios y signos comunes en dosis."""
     return RE_DOSIS.sub("", texto or "")
 
+
 def filtrar_direccion(texto: str) -> str:
     """Permite letras, números, espacios y signos comunes en direcciones."""
     return RE_DIRECCION.sub("", texto or "")
 
+
 def filtrar_curp(texto: str) -> str:
     """CURP: siempre mayúsculas, sin espacios, máx 18 caracteres."""
     return re.sub(r"[^A-Z0-9]", "", (texto or "").upper())[:18]
+
 
 def filtrar_rfc(texto: str) -> str:
     """RFC: siempre mayúsculas, sin espacios, máx 13 caracteres."""
@@ -106,6 +116,7 @@ def validar_nombre(valor, nombre_campo="Nombre", min_len=2):
         return False, f"{nombre_campo} solo puede contener letras."
     return True, ""
 
+
 def validar_entero(valor, nombre_campo="Campo", min_val=None, max_val=None):
     if valor is None or str(valor).strip() == "":
         return False, f"{nombre_campo} es obligatorio."
@@ -118,6 +129,7 @@ def validar_entero(valor, nombre_campo="Campo", min_val=None, max_val=None):
     if max_val is not None and n > max_val:
         return False, f"{nombre_campo} debe ser menor o igual a {max_val}."
     return True, ""
+
 
 def validar_decimal(valor, nombre_campo="Campo", min_val=None, max_val=None, opcional=False):
     s = str(valor or "").strip()
@@ -135,6 +147,7 @@ def validar_decimal(valor, nombre_campo="Campo", min_val=None, max_val=None, opc
         return False, f"{nombre_campo} debe ser menor o igual a {max_val}."
     return True, ""
 
+
 def validar_email(valor, opcional=True):
     s = (valor or "").strip()
     if not s:
@@ -145,6 +158,7 @@ def validar_email(valor, opcional=True):
         return False, "Correo demasiado largo (máx 150 caracteres)."
     return True, ""
 
+
 def validar_telefono(valor, opcional=True, longitud=10):
     s = (valor or "").strip()
     if not s:
@@ -154,6 +168,7 @@ def validar_telefono(valor, opcional=True, longitud=10):
     if len(s) != longitud:
         return False, f"Teléfono debe tener exactamente {longitud} dígitos."
     return True, ""
+
 
 def validar_curp(valor, genero=None):
     """Valida formato CURP. Si pasas género, valida que el carácter 11 (H/M) coincida."""
@@ -173,6 +188,7 @@ def validar_curp(valor, genero=None):
 
     return True, ""
 
+
 def validar_rfc(valor):
     s = (valor or "").strip().upper()
     if len(s) not in (12, 13):
@@ -182,6 +198,7 @@ def validar_rfc(valor):
     if len(s) == 12 and not RE_RFC_MORAL.match(s):
         return False, "RFC de persona moral no tiene formato válido."
     return True, ""
+
 
 def validar_presion(valor, opcional=True):
     s = (valor or "").strip()
@@ -204,6 +221,7 @@ def validar_presion(valor, opcional=True):
         return False, "Presión inválida."
     return True, ""
 
+
 def validar_cedula_profesional(valor, requerida=False):
     s = (valor or "").strip()
     if not s:
@@ -213,6 +231,7 @@ def validar_cedula_profesional(valor, requerida=False):
     if not (7 <= len(s) <= 8):
         return False, "Cédula debe tener entre 7 y 8 dígitos."
     return True, ""
+
 
 def validar_fecha(valor, nombre_campo="Fecha"):
     s = (valor or "").strip()
@@ -304,31 +323,36 @@ def validar_fecha_ingreso(fecha_ingreso, fecha_nacimiento):
 # ============================================================
 # EFECTOS PARA FLET
 # ============================================================
+
+
 def aplicar_error(textfield, mensaje):
     """Marca un TextField como inválido (borde rojo + helper text rojo)."""
     textfield.error_text = mensaje
     textfield.border_color = "red"
+
 
 def limpiar_error(textfield):
     """Quita el estado de error del TextField."""
     textfield.error_text = None
     textfield.border_color = None
 
+
 def validar_direccion_completa(valor):
     """Verifica que la dirección contenga al menos 3 palabras (calle, número, colonia) y un número."""
     s = (valor or "").strip()
     if not s:
         return False, "La calle, número y colonia son obligatorios."
-    
+
     # Verificar que tenga al menos un número (para el número de casa)
     if not re.search(r'\d', s):
         return False, "La dirección debe contener un número (ej. #123)."
-        
+
     # Verificar que tenga al menos 3 partes (ej. 'Calle', '12', 'Centro')
     if len(s.split()) < 3:
         return False, "Debes incluir calle, número y colonia separados por espacios."
-        
+
     return True, ""
+
 
 def validar_nombre_medicamento(valor, min_len=2):
     valor = (valor or "").strip()
@@ -336,23 +360,27 @@ def validar_nombre_medicamento(valor, min_len=2):
         return False, "El nombre del medicamento es obligatorio."
     if len(valor) < min_len:
         return False, f"El nombre debe tener al menos {min_len} caracteres."
-    
+
     # Permitir letras, números, espacios y guiones (Rechaza símbolos extraños como @, #, $, etc.)
     if re.search(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü0-9\s\-]", valor):
         return False, "El nombre del medicamento contiene caracteres no válidos."
     return True, ""
 
+
 def validar_formato_lote(valor):
-    """Valida que el lote tenga el formato exacto de L seguido de 3 números (Ej: L001, L999)"""
-    valor = (valor or "").strip().upper() # Lo convertimos a mayúscula por si escribieron 'l' minúscula
-    
+    """Valida que el número de lote sea puramente numérico (1 a 10 dígitos)."""
+    valor = (valor or "").strip()
     if not valor:
-        return False, "El lote es obligatorio."
-    
-    # ^L significa "Empieza con L"
-    # \d{3} significa "Exactamente 3 dígitos (0-9)"
-    # $ significa "Termina ahí"
-    if not re.match(r"^L\d{3}$", valor):
-        return False, "Formato de lote inválido. Debe ser 'L' seguido de 3 números (Ej: L001)."
-    
+        return False, "El número de lote es obligatorio."
+    if not valor.isdigit():
+        return False, "El número de lote solo puede contener dígitos (ej: 1001)."
+    if len(valor) > 10:
+        return False, "El número de lote no puede tener más de 10 dígitos."
+    if int(valor) < 1:
+        return False, "El número de lote debe ser mayor a 0."
     return True, ""
+
+def filtrar_nombre_medicamento(texto: str) -> str:
+    """Permite solo letras (con acentos y ñ), espacios y guiones.
+    Rechaza números y símbolos. Ej válido: 'Neo-Melubrina', 'Amoxicilina'."""
+    return RE_NOMBRE_MED.sub("", texto or "")

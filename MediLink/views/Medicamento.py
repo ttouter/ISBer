@@ -5,7 +5,8 @@ from logic.gestor_medicamento import (
     registrar_medicamento, reabastecer, actualizar as actualizar_med,
 )
 from logic.validators import (
-    filtrar_letras_numeros, filtrar_numeros, filtrar_numeros_decimal, filtrar_lote,
+    filtrar_letras_numeros, filtrar_numeros, filtrar_numeros_decimal,
+    filtrar_nombre_medicamento,
 )
 from database.consultas import (
     buscar_farmaceuticas,
@@ -13,78 +14,79 @@ from database.consultas import (
     obtener_todos_medicamentos,
     filtrar_medicamentos_por_clasificacion,
 )
+from theme.estilos import crear_appbar
 
 
 def medicamento_view(page: ft.Page, volver):
 
     # ============================================================
-    # ESTADO: si estamos editando uno existente
+    # ESTADO
     # ============================================================
     state = {
-        "id_editando": None,        # ID si estamos modificando uno existente
-        "duplicado_detectado": None # info del duplicado al guardar
+        "id_editando": None,
+        "duplicado_detectado": None,
+        "lote_original": "",
+        "caducidad_original": "",
+        "fecha_alta_original": "",
     }
 
     # ============================================================
     # FACTORY DE TEXTFIELDS CON FILTROS
     # ============================================================
     def tf_letras_numeros(label, expand=True):
-        tf = ft.TextField(label=label, expand=expand)
+        campo = ft.TextField(label=label, expand=expand)
         def _f(e):
-            limpio = filtrar_letras_numeros(tf.value)
-            if limpio != tf.value:
-                tf.value = limpio
-                tf.update()
-        tf.on_change = _f
-        return tf
+            limpio = filtrar_letras_numeros(campo.value)
+            if limpio != campo.value:
+                campo.value = limpio
+                campo.update()
+        campo.on_change = _f
+        return campo
 
     def tf_decimal(label, expand=True):
-        tf = ft.TextField(label=label, expand=expand,
-                         keyboard_type=ft.KeyboardType.NUMBER)
+        campo = ft.TextField(label=label, expand=expand,
+                             keyboard_type=ft.KeyboardType.NUMBER)
         def _f(e):
-            limpio = filtrar_numeros_decimal(tf.value)
-            if limpio != tf.value:
-                tf.value = limpio
-                tf.update()
-        tf.on_change = _f
-        return tf
+            limpio = filtrar_numeros_decimal(campo.value)
+            if limpio != campo.value:
+                campo.value = limpio
+                campo.update()
+        campo.on_change = _f
+        return campo
 
     def tf_entero(label, expand=True, max_len=None):
-        tf = ft.TextField(label=label, expand=expand,
-                         keyboard_type=ft.KeyboardType.NUMBER)
+        campo = ft.TextField(label=label, expand=expand,
+                             keyboard_type=ft.KeyboardType.NUMBER)
         def _f(e):
-            limpio = filtrar_numeros(tf.value)
+            limpio = filtrar_numeros(campo.value)
             if max_len:
                 limpio = limpio[:max_len]
-            if limpio != tf.value:
-                tf.value = limpio
-                tf.update()
-        tf.on_change = _f
-        return tf
+            if limpio != campo.value:
+                campo.value = limpio
+                campo.update()
+        campo.on_change = _f
+        return campo
 
     def tf_lote(label, expand=True):
-        tf = ft.TextField(label=label, expand=expand,
-                         capitalization=ft.TextCapitalization.CHARACTERS)
+        campo = ft.TextField(label=label, expand=expand,
+                             keyboard_type=ft.KeyboardType.NUMBER,
+                             hint_text="Ej: 1001")
         def _f(e):
-            limpio = filtrar_lote(tf.value)
-            if limpio != tf.value:
-                tf.value = limpio
-                tf.update()
-        tf.on_change = _f
-        return tf
+            limpio = filtrar_numeros(campo.value)
+            if limpio != campo.value:
+                campo.value = limpio
+                campo.update()
+        campo.on_change = _f
+        return campo
 
     # ============================================================
     # CAMPOS DEL FORMULARIO
     # ============================================================
     nombre = ft.TextField(
-        label="Nombre del Medicamento *", 
+        label="Nombre del Medicamento *",
         expand=True,
-        input_filter=ft.InputFilter(
-            allow=True,
-            regex_string=r"[a-zAÁÉÍÓÚáéíóúÑñÜü0-9\s\-]",
-            replacement_string=""
-        ), 
-        hint_text="Empieza a escribir para ver sugerencias...")
+        hint_text="Empieza a escribir para ver sugerencias..."
+    )
 
     sugerencias_med = ft.Column(spacing=0)
 
@@ -108,11 +110,11 @@ def medicamento_view(page: ft.Page, volver):
         ]
     )
 
-    precio       = tf_decimal("Precio Unitario")
-    stock        = tf_entero("Stock", max_len=7)
-    lote         = tf_lote("Número de lote")
-    precio_lote  = tf_decimal("Precio por lote")
-    mg           = tf_entero("Cantidad mg", max_len=6)
+    precio      = tf_decimal("Precio Unitario")
+    stock       = tf_entero("Stock", max_len=7)
+    lote        = tf_lote("Número de lote")
+    precio_lote = tf_decimal("Precio por lote")
+    mg          = tf_entero("Cantidad mg", max_len=6)
 
     caducidad = ft.TextField(label="Fecha de caducidad", read_only=True, expand=True)
     fecha_alta = ft.TextField(
@@ -120,7 +122,7 @@ def medicamento_view(page: ft.Page, volver):
         read_only=True, expand=True
     )
 
-    farmaceutica = tf_letras_numeros("Farmacéutica")
+    farmaceutica     = tf_letras_numeros("Farmacéutica")
     sugerencias_farm = ft.Column(spacing=0)
 
     descripcion = ft.TextField(
@@ -134,16 +136,13 @@ def medicamento_view(page: ft.Page, volver):
     # AUTOCOMPLETADO DE MEDICAMENTO
     # ============================================================
     def buscar_med(e):
-        # Filtro de caracteres permitidos
-        limpio = filtrar_letras_numeros(nombre.value)
+        # Filtro: solo letras, espacios y guiones (sin números ni símbolos)
+        limpio = filtrar_nombre_medicamento(nombre.value)
         if limpio != nombre.value:
-            nombre.value = limpio
-            nombre.update()
+            nombre.value = limpio   # se aplica en el page.update() del final
 
-        # Limpiar sugerencias
         sugerencias_med.controls.clear()
 
-        # Si estamos editando uno y el usuario cambia el nombre, salir de modo edición
         if state["id_editando"]:
             state["id_editando"] = None
             actualizar_modo_botones()
@@ -176,36 +175,27 @@ def medicamento_view(page: ft.Page, volver):
     nombre.on_change = buscar_med
 
     def cargar_medicamento(med):
-        """Precarga datos de un medicamento existente para registrar un NUEVO LOTE.
-        NO entra en modo edición: al guardar se creará un registro nuevo."""
-
-        # IMPORTANTE: NO ponemos state["id_editando"] porque queremos que
-        # se cree un registro NUEVO, no que se actualice el existente.
-
-        # Guardar valores ORIGINALES para validar que el nuevo lote sea distinto
-        state["lote_original"]      = med.get('numero_lote') or ''
+        """Precarga datos de un medicamento existente para registrar un NUEVO LOTE."""
+        state["lote_original"]      = str(med.get('numero_lote') or '')
         state["caducidad_original"] = str(med['fecha_caducidad']) if med.get('fecha_caducidad') else ''
 
-        # Llenar identidad y datos de referencia (lo que típicamente se mantiene)
-        nombre.value         = med['nombre_producto']
-        clasificacion.value  = med['clasificacion']
-        presentacion.value   = med['presentacion']
-        precio.value         = str(med['precio_unitario'])
-        mg.value             = str(med['cantidad_mg'])
-        farmaceutica.value   = med.get('farmaceutica') or ''
-        descripcion.value    = med.get('descripcion') or ''
+        nombre.value        = med['nombre_producto']
+        clasificacion.value = med['clasificacion']
+        presentacion.value  = med['presentacion']
+        precio.value        = str(med['precio_unitario'])
+        mg.value            = str(med['cantidad_mg'])
+        farmaceutica.value  = med.get('farmaceutica') or ''
+        descripcion.value   = med.get('descripcion') or ''
 
-        # 👇 Campos del NUEVO lote: vacíos, los captura el usuario
-        stock.value     = ""
-        lote.value      = ""
-        caducidad.value = ""
+        stock.value       = ""
+        lote.value        = ""
+        caducidad.value   = ""
         precio_lote.value = ""
         fecha_alta.value  = datetime.now().strftime("%Y-%m-%d")
 
-        # Bloquear identidad (porque debe ser el mismo medicamento conceptualmente)
-        nombre.read_only = True
+        nombre.read_only      = True
         presentacion.disabled = True
-        mg.read_only = True
+        mg.read_only          = True
 
         sugerencias_med.controls.clear()
         actualizar_modo_botones()
@@ -215,7 +205,6 @@ def medicamento_view(page: ft.Page, volver):
             "Captura número de lote, stock y fecha de caducidad del lote que llegó."
         )
         mensaje.color = "blue"
-
         page.update()
 
     # ============================================================
@@ -276,27 +265,25 @@ def medicamento_view(page: ft.Page, volver):
                       caducidad, farmaceutica, descripcion]:
             campo.value = ""
         clasificacion.value = None
-        presentacion.value = None
-        fecha_alta.value = datetime.now().strftime("%Y-%m-%d")
+        presentacion.value  = None
+        fecha_alta.value    = datetime.now().strftime("%Y-%m-%d")
         sugerencias_med.controls.clear()
         sugerencias_farm.controls.clear()
 
-        # Reactivar campos de identidad
-        nombre.read_only = False
+        nombre.read_only      = False
         presentacion.disabled = False
-        mg.read_only = False
+        mg.read_only          = False
 
-        state["id_editando"] = None
-        
-        state["lote_original"] = ""
-        state["caducidad_original"] = ""
-        state["fecha_alta_original"] = ""
-        
+        state["id_editando"]       = None
+        state["lote_original"]     = ""
+        state["caducidad_original"]= ""
+        state["fecha_alta_original"]= ""
+
         actualizar_modo_botones()
         page.update()
 
     # ============================================================
-    # BOTONES PRINCIPALES (cambian según el modo)
+    # BOTONES PRINCIPALES
     # ============================================================
     btn_principal = ft.ElevatedButton("Guardar", icon=ft.Icons.SAVE)
     btn_cancelar_edicion = ft.ElevatedButton(
@@ -308,8 +295,8 @@ def medicamento_view(page: ft.Page, volver):
 
     def actualizar_modo_botones():
         if state["id_editando"]:
-            btn_principal.text = "Actualizar / Reabastecer"
-            btn_principal.icon = ft.Icons.UPDATE
+            btn_principal.text    = "Actualizar / Reabastecer"
+            btn_principal.icon    = ft.Icons.UPDATE
             btn_cancelar_edicion.visible = True
             info_modo.value = (
                 f"📝 Editando medicamento existente (ID: {state['id_editando']}). "
@@ -317,8 +304,8 @@ def medicamento_view(page: ft.Page, volver):
             )
             info_modo.color = ft.Colors.BLUE_400
         else:
-            btn_principal.text = "Guardar"
-            btn_principal.icon = ft.Icons.SAVE
+            btn_principal.text    = "Guardar"
+            btn_principal.icon    = ft.Icons.SAVE
             btn_cancelar_edicion.visible = False
             info_modo.value = (
                 "💡 Empieza a escribir el nombre para ver sugerencias. "
@@ -327,7 +314,7 @@ def medicamento_view(page: ft.Page, volver):
             info_modo.color = ft.Colors.GREY_700
 
     # ============================================================
-    # DIÁLOGO DE REABASTECIMIENTO (cuando hay duplicado al GUARDAR)
+    # DIÁLOGO DE REABASTECIMIENTO
     # ============================================================
     info_existente = ft.Text("")
 
@@ -383,34 +370,35 @@ def medicamento_view(page: ft.Page, volver):
     page.overlay.append(dialogo_reabastecer)
 
     # ============================================================
-    # GUARDAR / ACTUALIZAR (función principal del botón)
+    # GUARDAR / ACTUALIZAR
     # ============================================================
     def construir_data():
         return {
-            "nombre": (nombre.value or "").strip(),
+            "nombre":       (nombre.value or "").strip(),
             "clasificacion": clasificacion.value,
-            "presentacion": presentacion.value,
-            "precio": precio.value,
-            "stock": stock.value,
-            "lote": (lote.value or "").strip(),
-            "precio_lote": precio_lote.value,
-            "mg": mg.value,
-            "caducidad": caducidad.value,
-            "fecha_alta": fecha_alta.value,
+            "presentacion":  presentacion.value,
+            "precio":        precio.value,
+            "stock":         stock.value,
+            "lote":         (lote.value or "").strip(),
+            "precio_lote":   precio_lote.value,
+            "mg":            mg.value,
+            "caducidad":     caducidad.value,
+            "fecha_alta":    fecha_alta.value,
             "farmaceutica": (farmaceutica.value or "").strip(),
-            "descripcion": (descripcion.value or "").strip(),
+            "descripcion":  (descripcion.value or "").strip(),
         }
 
     def accion_principal(e):
         data = construir_data()
+
         if not data["descripcion"]:
             mensaje.value = "La descripción del medicamento es obligatoria."
             mensaje.color = "red"
             page.update()
             page.run_task(limpiar_mensaje)
             return
-        
-        # ===== MODO EDICIÓN REAL (botón lápiz de la tabla) =====
+
+        # ── MODO EDICIÓN (botón lápiz de la tabla) ──────────────
         if state["id_editando"]:
             ok, msj = actualizar_med(state["id_editando"], data)
             mensaje.value = msj
@@ -422,10 +410,7 @@ def medicamento_view(page: ft.Page, volver):
             page.run_task(limpiar_mensaje)
             return
 
-        # ===== MODO ALTA (nuevo medicamento O nuevo lote de uno existente) =====
-
-        # Si viene de hacer clic en una sugerencia, validar que lote y caducidad
-        # sean DIFERENTES a los del lote original
+        # ── MODO ALTA (nuevo medicamento o nuevo lote) ───────────
         viene_de_sugerencia = bool(state.get("lote_original")) or bool(state.get("caducidad_original"))
         if viene_de_sugerencia:
             lote_actual = (lote.value or "").strip()
@@ -447,13 +432,25 @@ def medicamento_view(page: ft.Page, volver):
                 page.run_task(limpiar_mensaje)
                 return
 
-        # Pasamos forzar_nuevo=True para que NO trate de detectar duplicado:
-        # queremos un registro nuevo siempre.
-        resultado = registrar_medicamento(data, forzar_nuevo=True)
-        ok  = resultado[0]
-        msj = resultado[1]
+        resultado = registrar_medicamento(data, forzar_nuevo=viene_de_sugerencia)
+        ok  = resultado.exito
+        msj = resultado.mensaje
+        med_existente = resultado.extra
 
-        # Mensaje personalizado si era un lote nuevo de uno existente
+        if not ok and msj == "DUPLICADO":
+            state["duplicado_detectado"] = med_existente
+            info_existente.value = (
+                f"Ya existe: {med_existente['nombre_producto']} "
+                f"({med_existente.get('presentacion','')}, "
+                f"{med_existente.get('cantidad_mg','')} mg)\n"
+                f"Stock actual: {med_existente.get('stock', 0)}\n"
+                f"Lote actual: {med_existente.get('numero_lote', '—')}\n\n"
+                "¿Deseas registrar un nuevo lote y sumar stock?"
+            )
+            dialogo_reabastecer.open = True
+            page.update()
+            return
+
         if ok and viene_de_sugerencia:
             msj = "✓ Nuevo lote registrado correctamente."
 
@@ -493,17 +490,17 @@ def medicamento_view(page: ft.Page, volver):
     tabla = ft.DataTable(
         column_spacing=10, horizontal_margin=8,
         columns=[
-            ft.DataColumn(ft.Text("ID",         size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Nombre",     size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Clasif.",    size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Pres.",      size=11, weight="bold")),
-            ft.DataColumn(ft.Text("mg",         size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Stock",      size=11, weight="bold"), numeric=True),
-            ft.DataColumn(ft.Text("Precio",     size=11, weight="bold"), numeric=True),
-            ft.DataColumn(ft.Text("Lote",       size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Caducidad",  size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Farm.",      size=11, weight="bold")),
-            ft.DataColumn(ft.Text("Editar",     size=11, weight="bold")),
+            ft.DataColumn(ft.Text("ID",        size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Nombre",    size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Clasif.",   size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Pres.",     size=11, weight="bold")),
+            ft.DataColumn(ft.Text("mg",        size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Stock",     size=11, weight="bold"), numeric=True),
+            ft.DataColumn(ft.Text("Precio",    size=11, weight="bold"), numeric=True),
+            ft.DataColumn(ft.Text("Lote",      size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Caducidad", size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Farm.",     size=11, weight="bold")),
+            ft.DataColumn(ft.Text("Editar",    size=11, weight="bold")),
         ],
         rows=[]
     )
@@ -520,7 +517,7 @@ def medicamento_view(page: ft.Page, volver):
             ft.DataCell(ft.Text(str(med['cantidad_mg']), size=11)),
             ft.DataCell(ft.Text(str(med['stock']), size=11)),
             ft.DataCell(ft.Text(f"${float(med['precio_unitario']):.2f}", size=11)),
-            ft.DataCell(ft.Text(med.get('numero_lote') or "—", size=11)),
+            ft.DataCell(ft.Text(str(med.get('numero_lote') or "—"), size=11)),
             ft.DataCell(ft.Text(str(med.get('fecha_caducidad') or "—"), size=11)),
             ft.DataCell(ft.Text(med.get('farmaceutica') or "—", size=11)),
             ft.DataCell(
@@ -532,7 +529,6 @@ def medicamento_view(page: ft.Page, volver):
             ),
         ])
 
-    # Lista en memoria para filtros locales
     cache_medicamentos = {"lista": []}
 
     def poblar_tabla(lista):
@@ -543,13 +539,9 @@ def medicamento_view(page: ft.Page, volver):
 
     def aplicar_filtros():
         lista_base = cache_medicamentos["lista"]
-
-        # Filtro por clasificación (lo recargamos del servidor para precisión)
         if filtro_clasificacion.value and filtro_clasificacion.value != "Todas":
             lista_base = filtrar_medicamentos_por_clasificacion(filtro_clasificacion.value)
             cache_medicamentos["lista"] = lista_base
-
-        # Filtro por nombre (en memoria)
         termino = (buscador_tabla.value or "").strip().lower()
         if termino:
             lista_filtrada = [
@@ -558,7 +550,6 @@ def medicamento_view(page: ft.Page, volver):
             ]
         else:
             lista_filtrada = lista_base
-
         poblar_tabla(lista_filtrada)
 
     def recargar_tabla():
@@ -571,9 +562,8 @@ def medicamento_view(page: ft.Page, volver):
         aplicar_filtros()
 
     filtro_clasificacion.on_change = lambda e: recargar_tabla()
-    buscador_tabla.on_change = lambda e: aplicar_filtros()
+    buscador_tabla.on_change       = lambda e: aplicar_filtros()
 
-    # Carga inicial
     recargar_tabla()
     actualizar_modo_botones()
 
@@ -582,7 +572,7 @@ def medicamento_view(page: ft.Page, volver):
     # ============================================================
     formulario = ft.Card(
         content=ft.Container(
-            padding=20, width=850,
+            padding=20, expand=True,
             content=ft.Column(controls=[
                 ft.Text("Alta / Edición de medicamento", size=22,
                         weight=ft.FontWeight.BOLD),
@@ -610,7 +600,7 @@ def medicamento_view(page: ft.Page, volver):
 
     seccion_tabla = ft.Card(
         content=ft.Container(
-            padding=20, width=850,
+            padding=20, expand=True,
             content=ft.Column(controls=[
                 ft.Text("Medicamentos Registrados", size=18, weight="bold"),
                 ft.Divider(),
@@ -626,6 +616,7 @@ def medicamento_view(page: ft.Page, volver):
 
     return ft.View(
         route="/medicamento",
+        appbar=crear_appbar("Gestión de Medicamentos", volver),
         controls=[
             ft.Container(
                 expand=True, padding=15,

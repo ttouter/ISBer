@@ -4,6 +4,7 @@ from database.consultas import (
     buscar_medicamento_existente,
     reabastecer_medicamento,
     actualizar_medicamento,
+    verificar_lote_existente,
 )
 from logic.validators import (
     validar_decimal, validar_entero, validar_fecha,
@@ -39,6 +40,12 @@ def _validar_campos_medicamento(data, requerir_identidad=True):
 
     if not data.get("lote") or len(str(data["lote"]).strip()) < 1:
         return False, "Número de lote es obligatorio."
+
+    lote_str = str(data["lote"]).strip()
+    if not lote_str.isdigit():
+        return False, "El número de lote solo puede contener dígitos (ej: 1001)."
+    if int(lote_str) < 1:
+        return False, "El número de lote debe ser mayor a 0."
 
     ok, msg = validar_decimal(data.get("precio_lote"), "Precio por lote",
                               min_val=0.01, max_val=10000000, opcional=True)
@@ -84,6 +91,14 @@ def registrar_medicamento(data, forzar_nuevo=False):
     if not ok:
         return _ResultadoMedicamento(False, msg, None)
 
+    # Verificar que el número de lote no esté ya en uso
+    if verificar_lote_existente(data["lote"]):
+        return _ResultadoMedicamento(
+            False,
+            f"El número de lote {data['lote']} ya existe. Usa un número diferente.",
+            None
+        )
+
     if not forzar_nuevo:
         try:
             existente = buscar_medicamento_existente(
@@ -108,6 +123,10 @@ def actualizar(id_medicamento, data):
     ok, msg = _validar_campos_medicamento(data, requerir_identidad=False)
     if not ok:
         return False, msg
+
+    # Verificar que el lote no lo tenga otro medicamento distinto
+    if verificar_lote_existente(data["lote"], excluir_id=id_medicamento):
+        return False, f"El número de lote {data['lote']} ya está en uso por otro medicamento."
 
     try:
         precio_unit  = float(data["precio"])
@@ -151,6 +170,16 @@ def reabastecer(id_medicamento, stock_extra, nuevo_lote, precio_lote,
 
     if not nuevo_lote or len(str(nuevo_lote).strip()) < 1:
         return False, "Número de lote es obligatorio."
+
+    lote_str = str(nuevo_lote).strip()
+    if not lote_str.isdigit():
+        return False, "El número de lote solo puede contener dígitos (ej: 1001)."
+    if int(lote_str) < 1:
+        return False, "El número de lote debe ser mayor a 0."
+
+    # El nuevo lote no debe estar ya registrado en ningún medicamento
+    if verificar_lote_existente(lote_str):
+        return False, f"El número de lote {lote_str} ya existe. Usa un número diferente."
 
     exito = reabastecer_medicamento(
         id_medicamento=id_medicamento,

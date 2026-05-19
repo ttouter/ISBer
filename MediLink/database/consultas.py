@@ -207,6 +207,38 @@ def filtrar_medicamentos_por_clasificacion(clasificacion):
         (clasificacion,)
     )
 
+def verificar_lote_existente(numero_lote, excluir_id=None):
+    """
+    Devuelve True si el número de lote ya está en uso por otro medicamento.
+    excluir_id: si se pasa, ignora ese id_medicamento (útil al editar).
+    """
+    conexion = conectar()
+    if conexion is None:
+        return False
+    cursor = None
+    try:
+        cursor = conexion.cursor()
+        if excluir_id is not None:
+            cursor.execute(
+                "SELECT COUNT(*) FROM medicamentos "
+                "WHERE numero_lote = %s AND id_medicamento <> %s",
+                (str(numero_lote).strip(), int(excluir_id))
+            )
+        else:
+            cursor.execute(
+                "SELECT COUNT(*) FROM medicamentos WHERE numero_lote = %s",
+                (str(numero_lote).strip(),)
+            )
+        row = cursor.fetchone()
+        return (row[0] > 0) if row else False
+    except Exception as e:
+        print(f"Error al verificar lote: {e}")
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conexion.is_connected():
+            conexion.close()
 
 def actualizar_medicamento(id_med, clasificacion, precio_unit, stock,
                            numero_lote, precio_lote, caducidad,
