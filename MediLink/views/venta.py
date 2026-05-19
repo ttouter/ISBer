@@ -64,9 +64,9 @@ def caja_view(page: ft.Page, volver):
         width=200,
     )
     switch_consulta = ft.Switch(
-        label="Consulta General ($500)",      value=False)
+        label="Consulta General ($80)",      value=False)
     switch_emergencia = ft.Switch(
-        label="Consulta de Emergencia ($800)", value=False)
+        label="Consulta de Emergencia ($150)", value=False)
 
     txt_cita_label = ft.Text("Tipo de Cita:", weight=ft.FontWeight.BOLD,
                              color=ft.Colors.BLUE_GREY_800)
@@ -226,11 +226,6 @@ def caja_view(page: ft.Page, volver):
                 ft.DataCell(ft.Text(nombre_con_lote)),
                 # celda cantidad
                 ft.DataCell(ft.Text(str(item["cantidad"]))),
-                # celda subtotal
-                #celda nombre lote
-                ft.DataCell(ft.Text(nombre_con_lote)),
-                #celda cantidad
-                ft.DataCell(ft.Text(str(item["cantidad"]))),
                 #celda subtotal
                 ft.DataCell(ft.Text(f"${item['subtotal']:.2f}")),
                 # Botones + y -
@@ -273,21 +268,14 @@ def caja_view(page: ft.Page, volver):
 
         costo_cita = 0.0
         if switch_emergencia.value:
-            costo_cita = 60.0
+            costo_cita = 150.0
             txt_cita_valor.value = "Emergencia"
-            txt_cita_costo.value = "$60.00"
+            txt_cita_costo.value = "$150.00"
             fila_cita_desglose.visible = True
         elif switch_consulta.value:
-            costo_cita = 120.0
+            costo_cita = 80.0
             txt_cita_valor.value = "General"
-            txt_cita_costo.value = "$60.00"
-            txt_cita_valor.value       = "Emergencia"
-            txt_cita_costo.value       = "$60.00"
-            fila_cita_desglose.visible = True
-        elif switch_consulta.value:
-            costo_cita = 120.0
-            txt_cita_valor.value       = "General"
-            txt_cita_costo.value       = "$60.00"
+            txt_cita_costo.value = "$80.00"
             fila_cita_desglose.visible = True
         else:
             fila_cita_desglose.visible = False

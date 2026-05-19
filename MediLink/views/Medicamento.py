@@ -130,6 +130,14 @@ def medicamento_view(page: ft.Page, volver):
         min_lines=2, max_lines=4, expand=True
     )
 
+    def _filtrar_descripcion(e):
+        limpio = filtrar_letras_numeros(descripcion.value)
+        if limpio != descripcion.value:
+            descripcion.value = limpio
+            descripcion.update()
+    
+    descripcion.on_change = _filtrar_descripcion
+
     mensaje = ft.Text()
 
     # ============================================================
